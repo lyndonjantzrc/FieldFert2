@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Field Tracker">
+<title>Field Fertilizer Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+:root{--bg:#0f1a0f;--surface:#162216;--surface2:#1e2e1e;--surface3:#253525;--border:#2d422d;--accent:#7ec850;--accent2:#4a9e1a;--accent-dim:#3a6e14;--warn:#e8a030;--danger:#d94f4f;--text:#d8f0c8;--text2:#8fb87a;--text3:#5a7a50;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Bebas Neue',sans-serif;--radius:10px;--safe-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-size:16px}
+.nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:100}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;background:none;border:none;color:var(--text3);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:color .15s}
+.nav-btn.active{color:var(--accent)}
+.nav-btn svg{width:22px;height:22px}
+.page{display:none;padding:0 0 calc(72px + var(--safe-bottom)) 0;min-height:100vh}
+.page.active{display:block}
+.page-header{background:var(--surface);border-bottom:1px solid var(--border);padding:52px 16px 14px;position:sticky;top:0;z-index:10}
+.page-header h1{font-family:var(--display);font-size:30px;color:var(--accent);letter-spacing:.08em;line-height:1}
+.page-header p{font-size:12px;color:var(--text3);margin-top:3px;font-family:var(--mono)}
+.content{padding:16px}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px}
+.card-title{font-family:var(--display);font-size:18px;color:var(--accent);letter-spacing:.06em;margin-bottom:10px}
+.input-group{margin-bottom:12px}
+.input-label{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:5px;display:block}
+input[type="number"],input[type="text"],select,textarea{width:100%;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:11px 12px;color:var(--text);font-family:var(--mono);font-size:16px;outline:none;-webkit-appearance:none;appearance:none;transition:border-color .15s}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238fb87a' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+option{background:var(--surface2)}
+.btn{display:block;width:100%;padding:14px;border-radius:8px;border:none;font-family:var(--display);font-size:20px;letter-spacing:.1em;cursor:pointer;transition:filter .15s,transform .1s;text-align:center}
+.btn:active{transform:scale(.97);filter:brightness(.9)}
+.btn-primary{background:var(--accent2);color:#fff}
+.btn-secondary{background:var(--surface3);color:var(--text);border:1px solid var(--border)}
+.btn-warn{background:var(--warn);color:#111}
+.btn-danger{background:var(--danger);color:#fff}
+.btn-sm{display:inline-block;width:auto;padding:6px 12px;font-size:14px;border-radius:6px}
+.btn-row{display:flex;gap:10px}
+.btn-row .btn{flex:1}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-box{background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.stat-val{font-family:var(--mono);font-size:20px;font-weight:600;color:var(--accent);line-height:1;margin-bottom:3px}
+.stat-val.warn{color:var(--warn)}
+.stat-label{font-size:10px;color:var(--text3);font-family:var(--mono);text-transform:uppercase;letter-spacing:.08em}
+.field-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden}
+.field-card-header{background:var(--surface3);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.field-card-name{font-family:var(--display);font-size:20px;color:var(--accent);letter-spacing:.06em}
+.field-card-body{padding:12px 14px}
+.badge{font-family:var(--mono);font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;text-transform:uppercase;letter-spacing:.08em}
+.badge-active{background:var(--accent-dim);color:var(--accent)}
+.badge-done{background:#1a2a3a;color:#6ab0e0}
+.log-item{background:var(--surface3);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.log-item-info{flex:1}
+.log-item-type{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:2px}
+.log-item-val{font-family:var(--mono);font-size:15px;font-weight:600;color:var(--text)}
+.log-item-time{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right;white-space:nowrap;flex-shrink:0;margin-top:2px}
+.progress-wrap{margin:8px 0}
+.progress-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;border-radius:4px;transition:width .3s}
+.divider{border:none;border-top:1px solid var(--border);margin:14px 0}
+.section-title{font-family:var(--display);font-size:15px;color:var(--text3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px}
+.empty{text-align:center;padding:40px 20px;color:var(--text3);font-family:var(--mono);font-size:13px}
+.empty svg{width:48px;height:48px;opacity:.3;margin-bottom:12px;display:block;margin-left:auto;margin-right:auto}
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%) translateY(-20px);background:var(--accent2);color:#fff;font-family:var(--mono);font-size:13px;padding:10px 20px;border-radius:20px;opacity:0;transition:opacity .2s,transform .2s;z-index:1000;white-space:nowrap;pointer-events:none}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.error{background:var(--danger)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:flex-end;justify-content:center;padding-bottom:var(--safe-bottom)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 0 0;padding:20px;width:100%;max-height:80vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-family:var(--display);font-size:22px;color:var(--accent);letter-spacing:.08em;margin-bottom:16px}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)}
+.settings-item:last-child{border-bottom:none}
+.settings-item-label{font-size:14px;color:var(--text)}
+.settings-item-sub{font-family:var(--mono);font-size:11px;color:var(--text3);margin-top:2px}
+.settings-item-right{display:flex;align-items:center;gap:8px}
+.num-row{display:flex;align-items:center;gap:8px}
+.num-row input{flex:1}
+.num-btn{width:44px;height:44px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;color:var(--accent);font-size:22px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;user-select:none}
+.num-btn:active{filter:brightness(1.3)}
+.info-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+.info-key{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.info-val{font-family:var(--mono);font-size:13px;color:var(--text);font-weight:600}
+.chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.chip{background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-family:var(--mono);font-size:12px;color:var(--text2);cursor:pointer;transition:background .15s}
+.chip:active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- HOME -->
+<div class="page active" id="page-home">
+  <div class="page-header">
+    <h1>Field Tracker</h1>
+    <p id="home-subtitle">Active Fields</p>
+  </div>
+  <div class="content">
+    <button class="btn btn-primary" style="margin-bottom:16px" onclick="showStartFieldModal()">+ Start New Field</button>
+    <div id="active-fields-list"></div>
+    <div id="finished-fields-section" style="display:none">
+      <div class="section-title" style="margin-top:8px">Completed Fields</div>
+      <div id="finished-fields-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- FILL -->
+<div class="page" id="page-fill">
+  <div class="page-header">
+    <h1>Fill Up</h1>
+    <p>Log a refill event</p>
+  </div>
+  <div class="content">
+    <div id="fill-no-fields" style="display:none" class="empty">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      No active fields.<br>Start a field first.
+    </div>
+    <div id="fill-form-wrap">
+      <div class="input-group">
+        <label class="input-label">Select Field</label>
+        <select id="fill-field-select" onchange="onFillFieldChange()">
+          <option value="">-- choose field --</option>
+        </select>
+      </div>
+      <div id="fill-field-info" style="display:none">
+        <div class="stat-grid" id="fill-stats-grid"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Before Fill</div>
+        <div class="input-group" style="margin-bottom:0">
+          <label class="input-label">Gallons in tank NOW (before filling)</label>
+          <input type="number" id="fill-before" placeholder="e.g. 120" inputmode="decimal" oninput="calcFillPreview()">
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">After Fill</div>
+        <div class="input-group" style="margin-bottom:0">
+          <label class="input-label">Gallons in tank AFTER filling</label>
+          <div class="num-row">
+            <input type="number" id="fill-after" placeholder="e.g. 800" inputmode="decimal" oninput="calcFillPreview()">
+            <div class="num-btn" onclick="fillFullTank()" title="Full tank">⬆</div>
+          </div>
+          <div class="chip-row" id="fill-quick-chips"></div>
+        </div>
+      </div>
+      <div id="fill-preview" style="display:none" class="card">
+        <div class="card-title">Preview</div>
+        <div class="info-row"><span class="info-key">Gallons added this fill</span><span class="info-val" id="prev-added">—</span></div>
+        <div class="info-row"><span class="info-key">Total filled (all fills)</span><span class="info-val" id="prev-total-filled">—</span></div>
+        <div class="info-row"><span class="info-key">Fills so far (incl. this)</span><span class="info-val" id="prev-fills">—</span></div>
+        <div class="info-row"><span class="info-key">Est. acres covered</span><span class="info-val" id="prev-acres">—</span></div>
+        <div class="info-row"><span class="info-key">Est. acres remaining</span><span class="info-val" id="prev-remaining">—</span></div>
+        <div class="info-row"><span class="info-key">Gal needed to finish</span><span class="info-val" id="prev-needed">—</span></div>
+      </div>
+      <button class="btn btn-primary" onclick="logFill()">Log Fill</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG -->
+<div class="page" id="page-log">
+  <div class="page-header">
+    <h1>Log</h1>
+    <p>All fill entries</p>
+  </div>
+  <div class="content">
+    <div class="input-group">
+      <label class="input-label">Filter by field</label>
+      <select id="log-filter" onchange="renderLog()">
+        <option value="">All fields</option>
+      </select>
+    </div>
+    <div id="log-list"></div>
+  </div>
+</div>
+
+<!-- SETTINGS -->
+<div class="page" id="page-settings">
+  <div class="page-header">
+    <h1>Settings</h1>
+    <p>Tank &amp; field configuration</p>
+  </div>
+  <div class="content">
+    <div class="card">
+      <div class="card-title">Tank</div>
+      <div class="input-group" style="margin-bottom:0">
+        <label class="input-label">Tank Capacity (gallons)</label>
+        <input type="number" id="set-tank-cap" placeholder="e.g. 1000" inputmode="decimal" onchange="saveTankSettings()">
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Fields</div>
+      <div id="settings-fields-list"></div>
+      <hr class="divider">
+      <div class="section-title">Add New Field</div>
+      <div class="input-group">
+        <label class="input-label">Field Name</label>
+        <input type="text" id="new-field-name" placeholder="e.g. North 40">
+      </div>
+      <div class="btn-row" style="margin-bottom:10px">
+        <div style="flex:1">
+          <label class="input-label">Acres</label>
+          <input type="number" id="new-field-acres" placeholder="40" inputmode="decimal">
+        </div>
+        <div style="flex:1">
+          <label class="input-label">Target Gal/Acre</label>
+          <input type="number" id="new-field-rate" placeholder="e.g. 20" inputmode="decimal">
+        </div>
+      </div>
+      <button class="btn btn-secondary" onclick="addField()">Add Field</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Data</div>
+      <button class="btn btn-secondary" style="margin-bottom:8px;border-color:var(--accent);color:var(--accent)" onclick="exportAllPDF()">📄 Export All Fields PDF</button>
+      <button class="btn btn-secondary" style="margin-bottom:8px" onclick="exportData()">Export JSON Backup</button>
+      <button class="btn btn-danger" onclick="confirmClearData()">Clear All Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" id="nav-home" onclick="showPage('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    Fields
+  </button>
+  <button class="nav-btn" id="nav-fill" onclick="showPage('fill')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+    Fill Up
+  </button>
+  <button class="nav-btn" id="nav-log" onclick="showPage('log')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    Log
+  </button>
+  <button class="nav-btn" id="nav-settings" onclick="showPage('settings')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+    Settings
+  </button>
+</nav>
+
+<!-- MODAL: START FIELD -->
+<div class="modal-overlay" id="modal-start">
+  <div class="modal">
+    <div class="modal-title">Start Field</div>
+    <div class="input-group">
+      <label class="input-label">Field</label>
+      <select id="start-field-select"><option value="">-- choose field --</option></select>
+    </div>
+    <div class="input-group">
+      <label class="input-label">Gallons Currently in Tank</label>
+      <input type="number" id="start-gallons" placeholder="e.g. 850" inputmode="decimal">
+    </div>
+    <div class="btn-row" style="margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal('modal-start')">Cancel</button>
+      <button class="btn btn-primary" onclick="startField()">Start Field</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: FINISH FIELD -->
+<div class="modal-overlay" id="modal-finish">
+  <div class="modal">
+    <div class="modal-title">Finish Field</div>
+    <p style="font-size:13px;color:var(--text3);margin-bottom:14px;font-family:var(--mono)">Enter gallons remaining in tank when field is complete.</p>
+    <div class="input-group">
+      <label class="input-label">Gallons Left in Tank</label>
+      <input type="number" id="finish-gallons" placeholder="e.g. 250" inputmode="decimal" oninput="updateFinishSummary()">
+    </div>
+    <div id="finish-summary" style="margin-bottom:14px"></div>
+    <div class="btn-row">
+      <button class="btn btn-secondary" onclick="closeModal('modal-finish')">Cancel</button>
+      <button class="btn btn-warn" onclick="finishField()">Finish Field</button>
+    </div>
+    <div id="finish-pdf-btn-wrap" style="display:none;margin-top:10px">
+      <button class="btn btn-secondary" onclick="exportSessionPDF(_finishId)" style="border-color:var(--accent);color:var(--accent)">📄 Save as PDF</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: EDIT FILL -->
+<div class="modal-overlay" id="modal-edit-fill">
+  <div class="modal">
+    <div class="modal-title">Edit Fill Entry</div>
+    <div class="input-group">
+      <label class="input-label">Gallons Before Fill</label>
+      <input type="number" id="edit-before" inputmode="decimal">
+    </div>
+    <div class="input-group">
+      <label class="input-label">Gallons After Fill</label>
+      <input type="number" id="edit-after" inputmode="decimal">
+    </div>
+    <div id="edit-preview" style="font-family:var(--mono);font-size:13px;color:var(--text2);margin-bottom:12px"></div>
+    <div style="display:flex;gap:10px;margin-top:8px">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeModal('modal-edit-fill')">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditFill()">Save</button>
+      <button class="btn btn-danger" style="flex:0;padding:14px 16px;font-size:16px" onclick="deleteEditFill()">🗑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+let state = { tankCapacity: 1000, fields: [], sessions: [] };
+
+function saveState() { try { localStorage.setItem('fft_v2', JSON.stringify(state)); } catch(e){} }
+function loadState() {
+  try {
+    const raw = localStorage.getItem('fft_v2');
+    if (raw) { const parsed = JSON.parse(raw); state = Object.assign({}, state, parsed); }
+  } catch(e) {}
+}
+
+// ==================== HELPERS ====================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function fmtGal(n) { if (n == null || isNaN(n)) return '—'; return Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + ' gal'; }
+function fmtAc(n) { if (n == null || isNaN(n)) return '—'; return Number(n).toLocaleString(undefined,{maximumFractionDigits:1}) + ' ac'; }
+function fmtNum(n,d=1) { if (n==null||isNaN(n)) return '—'; return Number(n).toLocaleString(undefined,{maximumFractionDigits:d}); }
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString([],{month:'short',day:'numeric'}) + ' ' + d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+}
+function fmtDuration(ms) {
+  if (!ms || ms < 0) return '—';
+  const m = Math.round(ms/60000);
+  if (m < 60) return m + 'm';
+  return Math.floor(m/60) + 'h ' + (m%60) + 'm';
+}
+function getField(id) { return state.fields.find(f=>f.id===id); }
+function getSession(id) { return state.sessions.find(s=>s.id===id); }
+function getActiveSessions() { return state.sessions.filter(s=>s.status==='active'); }
+function getDoneSessions() { return state.sessions.filter(s=>s.status==='done'); }
+
+// Total gallons ADDED to tank via fills
+function sessGallonsAdded(sess) {
+  return sess.fills.reduce((acc,f) => acc + Math.max(0, f.after - f.before), 0);
+}
+// Gallons APPLIED to field = startGal + all fills added - endGal (if done)
+// For active sessions, endGal unknown so we show (startGal + fills_added) as upper bound
+// More precisely, we show startGal + fills_added since that's how much was on the sprayer
+function sessApplied(sess) {
+  const added = sessGallonsAdded(sess);
+  if (sess.status === 'done' && sess.endGal != null) {
+    return Math.max(0, sess.startGal + added - sess.endGal);
+  }
+  return sess.startGal + added; // active: max possible applied
+}
+function sessAvgFillInterval(sess) {
+  if (sess.fills.length < 2) return null;
+  const gaps = [];
+  for (let i=1;i<sess.fills.length;i++) gaps.push(sess.fills[i].ts - sess.fills[i-1].ts);
+  return gaps.reduce((a,b)=>a+b,0)/gaps.length;
+}
+
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + (isError?'error ':'') + 'show';
+  setTimeout(() => { t.className = 'toast'; }, 2500);
+}
+
+// ==================== NAV ====================
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name==='home') renderHome();
+  if (name==='fill') renderFillPage();
+  if (name==='log') renderLog();
+  if (name==='settings') renderSettings();
+}
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// ==================== HOME ====================
+function renderHome() {
+  const active = getActiveSessions();
+  const done = getDoneSessions();
+  document.getElementById('home-subtitle').textContent = active.length + ' active field' + (active.length!==1?'s':'');
+  const al = document.getElementById('active-fields-list');
+  al.innerHTML = active.length === 0
+    ? `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>No active fields.<br>Tap "+ Start New Field" above.</div>`
+    : active.map(s=>buildFieldCard(s)).join('');
+  const fs = document.getElementById('finished-fields-section');
+  const fl = document.getElementById('finished-fields-list');
+  if (done.length===0) { fs.style.display='none'; return; }
+  fs.style.display='block';
+  fl.innerHTML = done.slice().reverse().map(s=>buildFieldCard(s,true)).join('');
+}
+
+function buildFieldCard(sess, compact=false) {
+  const field = getField(sess.fieldId);
+  if (!field) return '';
+  const applied = sessApplied(sess);
+  const added = sessGallonsAdded(sess);
+  const rate = field.rate || 0;
+  const acCov = rate>0 ? applied/rate : null;
+  const acLeft = rate>0 ? Math.max(0, field.acres - acCov) : null;
+  const galNeeded = acLeft!=null ? Math.max(0,acLeft*rate) : null;
+  const pct = field.acres>0 && acCov!=null ? Math.min(100, acCov/field.acres*100) : 0;
+  const avgFill = sessAvgFillInterval(sess);
+  const badge = sess.status==='active'
+    ? '<span class="badge badge-active">Active</span>'
+    : '<span class="badge badge-done">Done</span>';
+  const elapsed = sess.status==='done' && sess.endTime
+    ? `<div class="info-row"><span class="info-key">Total time on field</span><span class="info-val">${fmtDuration(sess.endTime-sess.startTime)}</span></div>`
+    : `<div class="info-row"><span class="info-key">Started</span><span class="info-val">${fmtTime(sess.startTime)}</span></div>`;
+  const finBtn = sess.status==='active'
+    ? `<div style="margin-top:10px"><button class="btn btn-secondary btn-sm" style="font-size:14px" onclick="openFinishModal('${sess.id}')">Finish Field</button></div>`
+    : `<div style="margin-top:10px"><button class="btn btn-secondary btn-sm" style="font-size:14px;border-color:var(--accent);color:var(--accent)" onclick="exportSessionPDF('${sess.id}')">📄 Save PDF</button></div>`;
+  const progColor = pct>85 ? '#7ec850' : pct>50 ? '#4a9e1a' : '#3a6e14';
+  return `<div class="field-card">
+    <div class="field-card-header">
+      <div>
+        <div class="field-card-name">${field.name}</div>
+        <div style="font-family:var(--mono);font-size:11px;color:var(--text3)">${field.acres} ac &middot; ${field.rate} gal/ac target</div>
+      </div>
+      ${badge}
+    </div>
+    <div class="field-card-body">
+      <div class="stat-grid">
+        <div class="stat-box"><div class="stat-val">${fmtNum(applied,0)}<span style="font-size:12px;font-weight:400"> gal</span></div><div class="stat-label">Applied</div></div>
+        <div class="stat-box"><div class="stat-val">${sess.fills.length}</div><div class="stat-label">Fills</div></div>
+        <div class="stat-box"><div class="stat-val">${fmtAc(acCov)}</div><div class="stat-label">Covered</div></div>
+        <div class="stat-box"><div class="stat-val ${acLeft&&acLeft>0?'warn':''}">${fmtAc(acLeft)}</div><div class="stat-label">Remaining</div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${progColor}"></div></div>
+      </div>
+      <div class="info-row"><span class="info-key">Gal needed to finish</span><span class="info-val">${fmtGal(galNeeded)}</span></div>
+      <div class="info-row"><span class="info-key">Total filled (tank adds)</span><span class="info-val">${fmtGal(added)}</span></div>
+      ${elapsed}
+      ${avgFill!=null?`<div class="info-row"><span class="info-key">Avg time between fills</span><span class="info-val">${fmtDuration(avgFill)}</span></div>`:''}
+      ${finBtn}
+    </div>
+  </div>`;
+}
+
+// ==================== START FIELD ====================
+function showStartFieldModal() {
+  const sel = document.getElementById('start-field-select');
+  sel.innerHTML = '<option value="">-- choose field --</option>' +
+    state.fields.map(f=>`<option value="${f.id}">${f.name} (${f.acres} ac)</option>`).join('');
+  document.getElementById('start-gallons').value = '';
+  openModal('modal-start');
+}
+function startField() {
+  const fieldId = document.getElementById('start-field-select').value;
+  const gal = parseFloat(document.getElementById('start-gallons').value);
+  if (!fieldId) { showToast('Choose a field', true); return; }
+  if (isNaN(gal)||gal<0) { showToast('Enter starting gallons', true); return; }
+  state.sessions.push({ id:uid(), fieldId, startGal:gal, startTime:Date.now(), fills:[], endGal:null, endTime:null, status:'active' });
+  saveState();
+  closeModal('modal-start');
+  renderHome();
+  showToast('Field started!');
+}
+
+// ==================== FINISH FIELD ====================
+let _finishId = null;
+function openFinishModal(sessId) {
+  _finishId = sessId;
+  document.getElementById('finish-gallons').value = '';
+  document.getElementById('finish-summary').innerHTML = '';
+  openModal('modal-finish');
+}
+function updateFinishSummary() {
+  const gal = parseFloat(document.getElementById('finish-gallons').value);
+  const sumEl = document.getElementById('finish-summary');
+  if (isNaN(gal)||!_finishId) { sumEl.innerHTML=''; return; }
+  const sess = getSession(_finishId);
+  if (!sess) return;
+  const applied = Math.max(0, sess.startGal + sessGallonsAdded(sess) - gal);
+  const field = getField(sess.fieldId);
+  const acCov = field&&field.rate>0 ? (applied/field.rate).toFixed(1) : '—';
+  sumEl.innerHTML = `<div style="font-family:var(--mono);font-size:12px;color:var(--text2)">
+    <div class="info-row"><span class="info-key">Total applied</span><span class="info-val">${fmtGal(applied)}</span></div>
+    <div class="info-row"><span class="info-key">Acres covered</span><span class="info-val">${acCov} ac</span></div>
+    <div class="info-row"><span class="info-key">Total fills</span><span class="info-val">${sess.fills.length}</span></div>
+  </div>`;
+}
+function finishField() {
+  const gal = parseFloat(document.getElementById('finish-gallons').value);
+  if (isNaN(gal)||gal<0) { showToast('Enter remaining gallons', true); return; }
+  const sess = getSession(_finishId);
+  if (!sess) return;
+  sess.endGal = gal; sess.endTime = Date.now(); sess.status = 'done';
+  saveState();
+  renderHome();
+  showToast('Field completed!');
+  // Show PDF save button
+  document.getElementById('finish-pdf-btn-wrap').style.display = 'block';
+  // Change Finish button to Close
+  document.querySelector('#modal-finish .btn-warn').textContent = 'Done';
+  document.querySelector('#modal-finish .btn-warn').onclick = () => {
+    closeModal('modal-finish');
+    document.getElementById('finish-pdf-btn-wrap').style.display='none';
+    document.querySelector('#modal-finish .btn-warn').textContent='Finish Field';
+    document.querySelector('#modal-finish .btn-warn').onclick = finishField;
+  };
+}
+
+// ==================== FILL PAGE ====================
+function renderFillPage() {
+  const active = getActiveSessions();
+  const noF = document.getElementById('fill-no-fields');
+  const wrap = document.getElementById('fill-form-wrap');
+  if (active.length===0) { noF.style.display='block'; wrap.style.display='none'; return; }
+  noF.style.display='none'; wrap.style.display='block';
+  const sel = document.getElementById('fill-field-select');
+  sel.innerHTML = '<option value="">-- choose field --</option>' +
+    active.map(s=>{ const f=getField(s.fieldId); return `<option value="${s.id}">${f?f.name:'?'}</option>`; }).join('');
+  // Restore saved selection, fall back to single active field
+  const saved = localStorage.getItem('fft_selected_sess');
+  if (saved && active.find(s=>s.id===saved)) sel.value=saved;
+  else if (active.length===1) sel.value=active[0].id;
+  buildFillChips();
+  onFillFieldChange();
+}
+function buildFillChips() {
+  const cap = state.tankCapacity||1000;
+  const chips = document.getElementById('fill-quick-chips');
+  const amounts = [Math.round(cap*0.25), Math.round(cap*0.5), Math.round(cap*0.75), cap];
+  chips.innerHTML = amounts.map(a=>`<div class="chip" onclick="setAfterChip(${a})">${a.toLocaleString()}</div>`).join('')
+    + `<div class="chip" onclick="fillFullTank()">Full Tank</div>`;
+}
+function setAfterChip(val) { document.getElementById('fill-after').value=val; calcFillPreview(); }
+function fillFullTank() { document.getElementById('fill-after').value=state.tankCapacity||1000; calcFillPreview(); }
+function onFillFieldChange() {
+  const sessId = document.getElementById('fill-field-select').value;
+  if (sessId) localStorage.setItem('fft_selected_sess', sessId);
+  const infoBox = document.getElementById('fill-field-info');
+  if (!sessId) { infoBox.style.display='none'; return; }
+  const sess = getSession(sessId);
+  if (!sess) return;
+  const field = getField(sess.fieldId);
+  const applied = sessApplied(sess);
+  const rate = field?field.rate:0;
+  const acCov = rate>0 ? (applied/rate).toFixed(1) : '—';
+  const acLeft = rate>0 ? Math.max(0,field.acres-applied/rate).toFixed(1) : '—';
+  document.getElementById('fill-stats-grid').innerHTML = `
+    <div class="stat-box"><div class="stat-val">${fmtNum(applied,0)}<span style="font-size:11px"> gal</span></div><div class="stat-label">Applied</div></div>
+    <div class="stat-box"><div class="stat-val">${sess.fills.length}</div><div class="stat-label">Fills</div></div>
+    <div class="stat-box"><div class="stat-val">${acCov}<span style="font-size:11px"> ac</span></div><div class="stat-label">Covered</div></div>
+    <div class="stat-box"><div class="stat-val warn">${acLeft}<span style="font-size:11px"> ac</span></div><div class="stat-label">Left</div></div>`;
+  infoBox.style.display='block';
+  calcFillPreview();
+}
+function calcFillPreview() {
+  const sessId = document.getElementById('fill-field-select').value;
+  const before = parseFloat(document.getElementById('fill-before').value);
+  const after = parseFloat(document.getElementById('fill-after').value);
+  const preview = document.getElementById('fill-preview');
+  if (!sessId||isNaN(before)||isNaN(after)) { preview.style.display='none'; return; }
+  const added = after-before;
+  const sess = getSession(sessId);
+  const field = getField(sess.fieldId);
+  const currentApplied = sessApplied(sess);
+  const rate = field?field.rate:0;
+  const newFills = sess.fills.length+1;
+  const acCov = rate>0 ? (currentApplied/rate).toFixed(1) : '—';
+  const acLeft = rate>0 ? Math.max(0,field.acres-currentApplied/rate).toFixed(1) : '—';
+  const galNeeded = rate>0 ? Math.max(0,(field.acres-currentApplied/rate)*rate).toFixed(0) : '—';
+  document.getElementById('prev-added').textContent = fmtGal(added);
+  document.getElementById('prev-total-filled').textContent = fmtGal(sessGallonsAdded(sess)+Math.max(0,added));
+  document.getElementById('prev-fills').textContent = newFills;
+  document.getElementById('prev-acres').textContent = acCov+' ac';
+  document.getElementById('prev-remaining').textContent = acLeft+' ac';
+  document.getElementById('prev-needed').textContent = fmtGal(Number(galNeeded));
+  preview.style.display='block';
+}
+function logFill() {
+  const sessId = document.getElementById('fill-field-select').value;
+  const before = parseFloat(document.getElementById('fill-before').value);
+  const after = parseFloat(document.getElementById('fill-after').value);
+  if (!sessId) { showToast('Select a field', true); return; }
+  if (isNaN(before)||before<0) { showToast('Enter gallons before fill', true); return; }
+  if (isNaN(after)||after<0) { showToast('Enter gallons after fill', true); return; }
+  if (after<before) { showToast('After must be ≥ before', true); return; }
+  const sess = getSession(sessId);
+  sess.fills.push({ id:uid(), before, after, ts:Date.now() });
+  saveState();
+  document.getElementById('fill-before').value='';
+  document.getElementById('fill-after').value='';
+  document.getElementById('fill-preview').style.display='none';
+  onFillFieldChange();
+  showToast('Fill logged: +' + (after-before).toLocaleString() + ' gal');
+}
+
+// ==================== LOG ====================
+function renderLog() {
+  const filter = document.getElementById('log-filter');
+  const prev = filter.value;
+  filter.innerHTML = '<option value="">All fields</option>' +
+    state.fields.map(f=>`<option value="${f.id}">${f.name}</option>`).join('');
+  if (prev) filter.value=prev;
+  const fid = filter.value;
+  const entries = [];
+  for (const sess of state.sessions) {
+    if (fid && sess.fieldId!==fid) continue;
+    const field = getField(sess.fieldId);
+    const fname = field?field.name:'Unknown';
+    entries.push({ ts:sess.startTime, type:'start', label:'Field Start', val:`Tank: ${fmtGal(sess.startGal)}`, field:fname, sessId:sess.id, fillId:null });
+    for (const fill of sess.fills) {
+      entries.push({ ts:fill.ts, type:'fill', label:'Fill Up', val:`+${(fill.after-fill.before).toLocaleString()} gal  (${fill.before} → ${fill.after})`, field:fname, sessId:sess.id, fillId:fill.id });
+    }
+    if (sess.status==='done'&&sess.endTime) {
+      entries.push({ ts:sess.endTime, type:'done', label:'Field Finish', val:`${fmtGal(sessApplied(sess))} applied`, field:fname, sessId:sess.id, fillId:null });
+    }
+  }
+  entries.sort((a,b)=>b.ts-a.ts);
+  const list = document.getElementById('log-list');
+  if (entries.length===0) {
+    list.innerHTML=`<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>No entries yet.</div>`;
+    return;
+  }
+  const colors = { start:'var(--warn)', fill:'var(--accent)', done:'#6ab0e0' };
+  list.innerHTML = entries.map(e=>{
+    const editBtn = e.type==='fill'
+      ? `<button class="btn btn-secondary btn-sm" style="margin-top:5px;font-size:11px;padding:4px 10px" onclick="openEditFill('${e.sessId}','${e.fillId}')">Edit</button>`
+      : '';
+    return `<div class="log-item">
+      <div class="log-item-info">
+        <div class="log-item-type" style="color:${colors[e.type]}">${e.label} &middot; ${e.field}</div>
+        <div class="log-item-val">${e.val}</div>
+        ${editBtn}
+      </div>
+      <div class="log-item-time">${fmtTime(e.ts)}</div>
+    </div>`;
+  }).join('');
+}
+
+// ==================== EDIT FILL ====================
+let _editSessId=null, _editFillId=null;
+function openEditFill(sessId, fillId) {
+  _editSessId=sessId; _editFillId=fillId;
+  const sess=getSession(sessId);
+  const fill=sess.fills.find(f=>f.id===fillId);
+  document.getElementById('edit-before').value=fill.before;
+  document.getElementById('edit-after').value=fill.after;
+  document.getElementById('edit-preview').textContent = 'Added: ' + (fill.after-fill.before).toLocaleString() + ' gal';
+  openModal('modal-edit-fill');
+}
+document.getElementById('edit-before').addEventListener('input', updateEditPreview);
+document.getElementById('edit-after').addEventListener('input', updateEditPreview);
+function updateEditPreview() {
+  const b=parseFloat(document.getElementById('edit-before').value);
+  const a=parseFloat(document.getElementById('edit-after').value);
+  const el=document.getElementById('edit-preview');
+  el.textContent = (!isNaN(b)&&!isNaN(a)) ? 'Added: '+(a-b).toLocaleString()+' gal' : '';
+}
+function saveEditFill() {
+  const before=parseFloat(document.getElementById('edit-before').value);
+  const after=parseFloat(document.getElementById('edit-after').value);
+  if (isNaN(before)||isNaN(after)||after<before) { showToast('Invalid values',true); return; }
+  const sess=getSession(_editSessId);
+  const fill=sess.fills.find(f=>f.id===_editFillId);
+  fill.before=before; fill.after=after;
+  saveState(); closeModal('modal-edit-fill'); renderLog(); showToast('Entry updated');
+}
+function deleteEditFill() {
+  if (!confirm('Delete this fill entry?')) return;
+  const sess=getSession(_editSessId);
+  sess.fills=sess.fills.filter(f=>f.id!==_editFillId);
+  saveState(); closeModal('modal-edit-fill'); renderLog(); showToast('Entry deleted');
+}
+
+// ==================== SETTINGS ====================
+function renderSettings() {
+  document.getElementById('set-tank-cap').value=state.tankCapacity||'';
+  renderSettingsFields();
+}
+function saveTankSettings() {
+  const cap=parseFloat(document.getElementById('set-tank-cap').value);
+  if (!isNaN(cap)&&cap>0) { state.tankCapacity=cap; saveState(); showToast('Tank capacity saved'); }
+}
+function renderSettingsFields() {
+  const list=document.getElementById('settings-fields-list');
+  if (state.fields.length===0) {
+    list.innerHTML='<div style="font-family:var(--mono);font-size:12px;color:var(--text3);margin-bottom:8px">No fields added yet.</div>';
+    return;
+  }
+  list.innerHTML=state.fields.map(f=>`<div class="settings-item">
+    <div>
+      <div class="settings-item-label">${f.name}</div>
+      <div class="settings-item-sub">${f.acres} ac &middot; ${f.rate} gal/ac</div>
+    </div>
+    <div class="settings-item-right">
+      <button class="btn btn-secondary btn-sm" onclick="editField('${f.id}')">Edit</button>
+      <button class="btn btn-danger btn-sm" onclick="deleteField('${f.id}')">✕</button>
+    </div>
+  </div>`).join('');
+}
+function addField() {
+  const name=document.getElementById('new-field-name').value.trim();
+  const acres=parseFloat(document.getElementById('new-field-acres').value);
+  const rate=parseFloat(document.getElementById('new-field-rate').value);
+  if (!name) { showToast('Enter a field name',true); return; }
+  if (isNaN(acres)||acres<=0) { showToast('Enter valid acres',true); return; }
+  if (isNaN(rate)||rate<=0) { showToast('Enter valid gal/ac rate',true); return; }
+  state.fields.push({ id:uid(), name, acres, rate });
+  saveState();
+  document.getElementById('new-field-name').value='';
+  document.getElementById('new-field-acres').value='';
+  document.getElementById('new-field-rate').value='';
+  renderSettingsFields();
+  showToast('Field added');
+}
+function editField(fid) {
+  const f=getField(fid);
+  const name=prompt('Field name:',f.name); if(name===null) return;
+  const acres=parseFloat(prompt('Acres:',f.acres));
+  const rate=parseFloat(prompt('Gal/Acre rate:',f.rate));
+  if(!name||isNaN(acres)||isNaN(rate)) { showToast('Invalid values',true); return; }
+  f.name=name.trim(); f.acres=acres; f.rate=rate;
+  saveState(); renderSettingsFields(); showToast('Field updated');
+}
+function deleteField(fid) {
+  if (!confirm('Delete this field?')) return;
+  state.fields=state.fields.filter(f=>f.id!==fid);
+  saveState(); renderSettingsFields(); showToast('Field deleted');
+}
+function exportData() {
+  const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download='fertilizer-tracker-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  URL.revokeObjectURL(url);
+}
+function confirmClearData() {
+  if (!confirm('Clear ALL data? Cannot be undone.')) return;
+  if (!confirm('Final warning: delete everything?')) return;
+  localStorage.removeItem('fft_v2');
+  state={ tankCapacity:1000, fields:[], sessions:[] };
+  renderHome(); renderSettings(); showToast('Data cleared');
+}
+
+// ==================== PDF EXPORT ====================
+function buildSessionPDFDoc(doc, sess, startY) {
+  const field = getField(sess.fieldId);
+  const fname = field ? field.name : 'Unknown Field';
+  const applied = sessApplied(sess);
+  const added = sessGallonsAdded(sess);
+  const rate = field ? field.rate : 0;
+  const acCov = rate>0 ? (applied/rate).toFixed(1) : '—';
+  const acLeft = rate>0 ? Math.max(0,field.acres-applied/rate).toFixed(1) : '—';
+  const duration = sess.endTime ? fmtDuration(sess.endTime-sess.startTime) : '—';
+  const avgFill = sessAvgFillInterval(sess);
+  const { jsPDF } = window.jspdf;
+  let y = startY;
+  const lm = 14; // left margin
+  const pw = doc.internal.pageSize.getWidth();
+
+  // Field header bar
+  doc.setFillColor(30, 46, 30);
+  doc.rect(lm, y, pw-lm*2, 10, 'F');
+  doc.setTextColor(126, 200, 80);
+  doc.setFontSize(13);
+  doc.setFont('helvetica','bold');
+  doc.text(fname.toUpperCase(), lm+3, y+7);
+  doc.setTextColor(90, 122, 80);
+  doc.setFontSize(9);
+  doc.text(sess.status === 'done' ? 'COMPLETED' : 'ACTIVE', pw-lm-3, y+7, {align:'right'});
+  y += 14;
+
+  // Summary stats table
+  doc.setTextColor(40, 40, 40);
+  doc.setFontSize(9);
+  doc.setFont('helvetica','normal');
+
+  const summaryData = [
+    ['Field', fname, 'Acres', field ? field.acres+' ac' : '—'],
+    ['Target Rate', rate ? rate+' gal/ac' : '—', 'Total Acres Covered', acCov+' ac'],
+    ['Tank Start', fmtGal(sess.startGal), 'Tank End', sess.endGal!=null ? fmtGal(sess.endGal) : '—'],
+    ['Total Applied', fmtGal(applied), 'Total Filled (tank adds)', fmtGal(added)],
+    ['Number of Fills', sess.fills.length, 'Acres Remaining', acLeft+' ac'],
+    ['Start Time', fmtTime(sess.startTime), 'End Time', sess.endTime ? fmtTime(sess.endTime) : '—'],
+    ['Total Time', duration, 'Avg Time Between Fills', avgFill ? fmtDuration(avgFill) : '—'],
+  ];
+
+  doc.autoTable({
+    startY: y,
+    margin: { left: lm, right: lm },
+    body: summaryData,
+    columnStyles: {
+      0: { cellWidth: 38, fontStyle:'bold', fillColor:[37,53,37], textColor:[139,184,122] },
+      1: { cellWidth: 52, fillColor:[30,46,30], textColor:[216,240,200] },
+      2: { cellWidth: 38, fontStyle:'bold', fillColor:[37,53,37], textColor:[139,184,122] },
+      3: { cellWidth: 52, fillColor:[30,46,30], textColor:[216,240,200] },
+    },
+    styles: { fontSize:8.5, cellPadding:3, lineColor:[45,66,45], lineWidth:0.2 },
+    theme: 'grid',
+  });
+  y = doc.lastAutoTable.finalY + 6;
+
+  // Fills detail table
+  if (sess.fills.length > 0) {
+    doc.setFont('helvetica','bold');
+    doc.setFontSize(9);
+    doc.setTextColor(126,200,80);
+    doc.text('FILL LOG', lm, y+4);
+    y += 7;
+
+    const fillRows = sess.fills.map((f,i) => [
+      i+1,
+      fmtTime(f.ts),
+      fmtGal(f.before),
+      fmtGal(f.after),
+      fmtGal(f.after-f.before),
+    ]);
+
+    doc.autoTable({
+      startY: y,
+      margin: { left: lm, right: lm },
+      head: [['#','Time','Before Fill','After Fill','Added']],
+      body: fillRows,
+      headStyles: { fillColor:[30,90,20], textColor:[216,240,200], fontSize:8, fontStyle:'bold' },
+      bodyStyles: { fillColor:[30,46,30], textColor:[216,240,200], fontSize:8 },
+      alternateRowStyles: { fillColor:[37,53,37] },
+      styles: { cellPadding:3, lineColor:[45,66,45], lineWidth:0.2 },
+      theme: 'grid',
+    });
+    y = doc.lastAutoTable.finalY + 4;
+  }
+  return y;
+}
+
+function exportSessionPDF(sessId) {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { showToast('PDF library not loaded yet', true); return; }
+  const sess = getSession(sessId);
+  if (!sess) return;
+  const field = getField(sess.fieldId);
+  const fname = field ? field.name : 'field';
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  // Header
+  doc.setFillColor(15, 26, 15);
+  doc.rect(0, 0, 216, 20, 'F');
+  doc.setTextColor(126, 200, 80);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(16);
+  doc.text('FIELD FERTILIZER REPORT', 14, 13);
+  doc.setTextColor(90,122,80);
+  doc.setFontSize(8);
+  doc.text('Generated: ' + fmtTime(Date.now()), 216-14, 13, {align:'right'});
+  buildSessionPDFDoc(doc, sess, 24);
+  // Footer
+  const ph = doc.internal.pageSize.getHeight();
+  doc.setFontSize(7);
+  doc.setTextColor(90,122,80);
+  doc.text('Field Fertilizer Tracker', 14, ph-6);
+  const safe = fname.replace(/[^a-z0-9]/gi,'_');
+  doc.save('field-report-' + safe + '-' + new Date().toISOString().slice(0,10) + '.pdf');
+  showToast('PDF saved!');
+}
+
+function exportAllPDF() {
+  const { jsPDF } = window.jspdf;
+  if (!jsPDF) { showToast('PDF library not loaded yet', true); return; }
+  const sessions = state.sessions;
+  if (sessions.length === 0) { showToast('No field records yet', true); return; }
+  const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'letter' });
+  const pw = doc.internal.pageSize.getWidth();
+  const ph = doc.internal.pageSize.getHeight();
+
+  // Cover header
+  doc.setFillColor(15,26,15);
+  doc.rect(0,0,pw,24,'F');
+  doc.setTextColor(126,200,80);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(18);
+  doc.text('FERTILIZER APPLICATION REPORT', 14, 15);
+  doc.setTextColor(90,122,80);
+  doc.setFontSize(8);
+  doc.text('All Fields  ·  Generated: ' + fmtTime(Date.now()), pw-14, 15, {align:'right'});
+
+  let y = 28;
+  sessions.forEach((sess, idx) => {
+    if (idx > 0) {
+      // Check if we need a new page (rough estimate)
+      if (y > ph - 60) {
+        doc.addPage();
+        y = 14;
+      } else {
+        y += 4;
+        doc.setDrawColor(45,66,45);
+        doc.line(14, y, pw-14, y);
+        y += 6;
+      }
+    }
+    y = buildSessionPDFDoc(doc, sess, y);
+  });
+
+  // Footer on last page
+  doc.setFontSize(7);
+  doc.setTextColor(90,122,80);
+  doc.text('Field Fertilizer Tracker  ·  ' + sessions.length + ' field record(s)', 14, ph-6);
+
+  doc.save('all-fields-report-' + new Date().toISOString().slice(0,10) + '.pdf');
+  showToast('PDF saved!');
+}
+
+// ==================== MODAL BACKDROP ====================
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); });
+});
+
+// ==================== INIT ====================
+loadState();
+renderHome();
+renderFillPage();
+renderLog();
+renderSettings();
+</script>
+</body>
+</html>
