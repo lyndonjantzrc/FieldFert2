@@ -18,12 +18,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
 :root{--bg:#0f1a0f;--surface:#162216;--surface2:#1e2e1e;--surface3:#253525;--border:#2d422d;--accent:#7ec850;--accent2:#4a9e1a;--accent-dim:#3a6e14;--warn:#e8a030;--danger:#d94f4f;--text:#d8f0c8;--text2:#8fb87a;--text3:#5a7a50;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;--display:'Bebas Neue',sans-serif;--radius:10px;--safe-bottom:env(safe-area-inset-bottom,0px)}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-size:16px}
+body{font-family:var(--sans);background:var(--bg);color:var(--text);min-height:100dvh;overflow-x:hidden;font-size:16px}
 .nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:flex;padding-bottom:var(--safe-bottom);z-index:100}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 8px;background:none;border:none;color:var(--text3);font-family:var(--sans);font-size:10px;font-weight:500;letter-spacing:.05em;text-transform:uppercase;cursor:pointer;transition:color .15s}
 .nav-btn.active{color:var(--accent)}
 .nav-btn svg{width:22px;height:22px}
-.page{display:none;padding:0 0 calc(72px + var(--safe-bottom)) 0;min-height:100vh}
+.page{display:none;padding:0 0 calc(72px + var(--safe-bottom)) 0;min-height:100dvh}
 .page.active{display:block}
 .page-header{background:var(--surface);border-bottom:1px solid var(--border);padding:52px 16px 14px;position:sticky;top:0;z-index:10}
 .page-header h1{font-family:var(--display);font-size:30px;color:var(--accent);letter-spacing:.08em;line-height:1}
@@ -93,6 +93,48 @@ option{background:var(--surface2)}
 .chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 .chip{background:var(--surface3);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-family:var(--mono);font-size:12px;color:var(--text2);cursor:pointer;transition:background .15s}
 .chip:active{background:var(--accent2);color:#fff;border-color:var(--accent2)}
+</style>
+<style>
+
+/* ===== iPHONE / iPAD FIX PACK ===== /
+
+/ Fix safe area + remove extra top offset /
+.navbar {
+  margin-top: 0 !important;
+  top: 0 !important;
+  padding-top: env(safe-area-inset-top) !important;
+}
+
+/ Fix the "page too tall" issue /
+.settings-page,
+.main-content,
+.page,
+.container {
+  height: auto !important;
+  min-height: calc(100dvh - env(safe-area-inset-top)) !important;
+}
+
+/ Fix scrolling behavior /
+.main-content,
+.content,
+.scrollable {
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/ Prevent body from causing overflow /
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/ Replace broken viewport height */
+.full-height {
+  height: 100dvh !important;
+}
+
 </style>
 </head>
 <body>
