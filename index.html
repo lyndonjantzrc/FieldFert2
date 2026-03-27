@@ -85,8 +85,9 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 3px;
-        padding: 10px 4px 8px;
+        gap: 4px;
+        padding: 12px 6px 10px;
+        min-height: 60px;
         background: none;
         border: none;
         color: var(--text3);
@@ -110,7 +111,7 @@
 
     .page {
         display: none;
-        padding: 0 0 calc(72px + var(--safe-bottom)) 0;
+        padding: 0 0 calc(84px + var(--safe-bottom)) 0;
         min-height: 100vh
     }
 
@@ -616,7 +617,7 @@
     .page {
         min-height: 100vh;
         min-height: 100dvh;
-        padding-bottom: calc(76px + var(--safe-bottom))
+        padding-bottom: calc(88px + var(--safe-bottom))
     }
 
     .page-header {
@@ -732,7 +733,7 @@
 
     @media (pointer: coarse) {
         .nav-btn {
-            min-height: 58px
+            min-height: 64px
         }
 
         .btn-sm {
@@ -831,6 +832,10 @@
                     <div class="info-row">
                         <span class="info-key">Gal needed to finish</span>
                         <span class="info-val" id="prev-needed">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-key">Total full fillups needed to finish</span>
+                        <span class="info-val" id="prev-fillups-needed">—</span>
                     </div>
                 </div>
                 <button class="btn btn-primary" onclick="logFill()">Log Fill</button>
@@ -1166,6 +1171,16 @@
         const acCov = rate > 0 ? applied / rate : null;
         const acLeft = rate > 0 ? Math.max(0, field.acres - acCov) : null;
         const galNeeded = acLeft != null ? Math.max(0, acLeft * rate) : null;
+        const usablePerFill = Math.max(0, (state.tankCapacity || 0) - 50);
+        let fillupsNeededText = '—';
+        if (galNeeded != null) {
+            if (galNeeded <= 0)
+                fillupsNeededText = '0';
+            else if (usablePerFill > 0) {
+                const rawFillups = galNeeded / usablePerFill;
+                fillupsNeededText = rawFillups < 1 ? '<1' : String(Math.ceil(rawFillups));
+            }
+        }
         const pct = field.acres > 0 && acCov != null ? Math.min(100, acCov / field.acres * 100) : 0;
         const avgFill = sessAvgFillInterval(sess);
         const badge = sess.status === 'active'
@@ -1206,6 +1221,7 @@
       </div>
       <div class="info-row"><span class="info-key">Gal needed to finish</span><span class="info-val">${
         fmtGal(galNeeded)}</span></div>
+      <div class="info-row"><span class="info-key">Total full fillups needed to finish</span><span class="info-val">${fillupsNeededText}</span></div>
       <div class="info-row"><span class="info-key">Total filled (tank adds)</span><span class="info-val">${fmtGal(added)}</span></div>
       ${elapsed}
       ${avgFill != null ? `<div class="info-row"><span class="info-key">Avg time between fills</span><span class="info-val">${fmtDuration(avgFill)}</span></div>` : ''}
@@ -1397,13 +1413,24 @@
         const newFills = sess.fills.length + 1;
         const acCov = rate > 0 ? (currentApplied / rate).toFixed(1) : '—';
         const acLeft = rate > 0 ? Math.max(0, field.acres - currentApplied / rate).toFixed(1) : '—';
-        const galNeeded = rate > 0 ? Math.max(0, (field.acres - currentApplied / rate) * rate).toFixed(0) : '—';
+        const galNeeded = rate > 0 ? Math.max(0, (field.acres - currentApplied / rate) * rate) : null;
+        const usablePerFill = Math.max(0, (state.tankCapacity || 0) - 50);
+        let fillupsNeededText = '—';
+        if (galNeeded != null) {
+            if (galNeeded <= 0)
+                fillupsNeededText = '0';
+            else if (usablePerFill > 0) {
+                const rawFillups = galNeeded / usablePerFill;
+                fillupsNeededText = rawFillups < 1 ? '<1' : String(Math.ceil(rawFillups));
+            }
+        }
         document.getElementById('prev-added').textContent = fmtGal(added);
         document.getElementById('prev-total-filled').textContent = fmtGal(sessGallonsAdded(sess) + Math.max(0, added));
         document.getElementById('prev-fills').textContent = newFills;
         document.getElementById('prev-acres').textContent = acCov + ' ac';
         document.getElementById('prev-remaining').textContent = acLeft + ' ac';
-        document.getElementById('prev-needed').textContent = fmtGal(Number(galNeeded));
+        document.getElementById('prev-needed').textContent = fmtGal(galNeeded);
+        document.getElementById('prev-fillups-needed').textContent = fillupsNeededText;
         preview.style.display = 'block';
     }
     function logFill() {
